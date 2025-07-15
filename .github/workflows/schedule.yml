@@ -1,4 +1,4 @@
-name: Run Python Script
+name: Running Library Reservation Script
 
 on:
   workflow_dispatch:
