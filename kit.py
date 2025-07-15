@@ -141,7 +141,9 @@ def test_reservation():
         }, cookies=cookies
     )
 
-    print(r.status_code, r.text)
+    if not r.ok:
+        print("Slot is not available anymore!")
+        return False
 
     oid = r.json()['data']['id']
     oat = r.json()['data']['attributes']['access_token']
