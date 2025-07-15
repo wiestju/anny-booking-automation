@@ -171,8 +171,6 @@ def test_reservation():
         }
     )
 
-    print(r3.status_code, r3.text)
-
     if r3.ok:
         print("Reservation successful!")
         return True
