@@ -16,8 +16,8 @@ def get_day():
 
 def login(username, password):
 
-    ses = requests.Session()
-    ses.headers = {
+    session = requests.Session()
+    session.headers = {
         'accept': 'text/html, application/xhtml+xml',
         'accept-encoding': 'plain',
         'referer':  'https://auth.anny.eu/',
@@ -28,13 +28,13 @@ def login(username, password):
         'x-inertia-version': '66b32acea13402d3aef4488ccd239c93',
     }
 
-    r = ses.get(
+    r = session.get(
         'https://auth.anny.eu/login/sso'
     )
 
-    ses.headers['X-XSRF-TOKEN'] = urllib.parse.unquote(r.cookies['XSRF-TOKEN'])
+    session.headers['X-XSRF-TOKEN'] = urllib.parse.unquote(r.cookies['XSRF-TOKEN'])
 
-    r2 = ses.post(
+    r2 = session.post(
         'https://auth.anny.eu/login/sso',
         json={
             'domain': 'kit.edu'
@@ -45,19 +45,19 @@ def login(username, password):
 
     redirect_url = r2.headers['x-inertia-location']
 
-    r3 = ses.get(
+    r3 = session.get(
         redirect_url,
         allow_redirects=True
     )
 
-    ses.headers.pop('x-requested-with')
-    ses.headers.pop('x-inertia')
-    ses.headers.pop('x-inertia-version')
+    session.headers.pop('x-requested-with')
+    session.headers.pop('x-inertia')
+    session.headers.pop('x-inertia-version')
 
     pattern = r'name="csrf_token" value="([^"]+)"'
     csrf_token = re.search(pattern, r3.text).group(1)
 
-    r4 = ses.post(
+    r4 = session.post(
         'https://idp.scc.kit.edu/idp/profile/SAML2/Redirect/SSO?execution=e1s1',
         data={
             'csrf_token': csrf_token,
@@ -83,7 +83,7 @@ def login(username, password):
     pattern = r'name="SAMLResponse" value="([^"]+)"'
     samlResponse = re.search(pattern, response).group(1)
 
-    r5 = ses.post(
+    r5 = session.post(
         consume_url,
         data={
             'RelayState': relayState,
@@ -91,13 +91,13 @@ def login(username, password):
         }
     )
 
-    r6 = ses.get(
+    r6 = session.get(
         'https://anny.eu/en-us/login?target=/en-us/home?withoutIntent=true',
         allow_redirects=True
     )
 
 
-    return ses.cookies
+    return session.cookies
 
 def test_reservation():
     load_dotenv('credentials.env', override=True)
@@ -172,7 +172,12 @@ def test_reservation():
     )
 
     print(r3.status_code, r3.text)
+
     if r3.ok:
         print("Reservation successful!")
+        return True
+
+    print("Reservation failed!")
+    return False
 
 test_reservation()
