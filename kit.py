@@ -107,7 +107,6 @@ def test_reservation():
 
     cookies = login(username, password)
 
-
     TOKEN = cookies['anny_shop_jwt']
 
     ses = requests.Session()
@@ -122,15 +121,37 @@ def test_reservation():
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0'
         }
 
+    start_date = get_day() + "T13:00:00+02:00"
+    end_date = get_day() + "T18:00:00+02:00"
+
+    pre = ses.get(
+        'https://b.anny.eu/api/v1/resources/1-lehrbuchsammlung-eg-und-1-og/children',
+        params={
+            'page[number]': 1,
+            'page[size]': 250,
+            'filter[available_from]': start_date,
+            'filter[available_to]': end_date,
+            'filter[availability_exact_match]': 1,
+            'filter[exclude_hidden]': 0,
+            'filter[exclude_child_resources]': 0,
+            'filter[availability_service_id]': 449,
+            'filter[include_unavailable]': 0,
+            'filter[pre_order_ids]': '',
+            'sort': 'name'
+        }
+    )
+
+    ressource_id = pre.json()['data'][0]['id']
+
     r = ses.post(
         'https://b.anny.eu/api/v1/order/bookings?include=customer,voucher,bookings.booking_add_ons.add_on.cover_image,bookings.sub_bookings.resource,bookings.sub_bookings.service,bookings.series_bookings,bookings.customer,bookings.service.custom_forms.custom_fields,bookings.cancellation_policy,bookings.resource.cover_image,bookings.resource.parent,bookings.resource.category,bookings.reminders,bookings.booking_series,sub_orders.bookings,sub_orders.organization.legal_documents&stateless=1',
         json={
             "resource_id": [
-                "3305"
+                ressource_id
             ], "service_id": {
                 "449": 1
-            }, "start_date": get_day() + "T13:00:00+02:00",
-            "end_date": get_day() + "T18:00:00+02:00",
+            }, "start_date": start_date,
+            "end_date": end_date,
             "description":"", "customer_note": "",
             "add_ons_by_service": {
                 "449": [

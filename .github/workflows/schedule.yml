@@ -3,7 +3,7 @@ name: Running Library Reservation Script
 on:
   workflow_dispatch:
   schedule:
-    - cron: '40,45,50,55 21 * * *'
+    - cron: '55 21 * * *'
     - cron: '0 22 * * *'
 
 jobs:
