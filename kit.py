@@ -17,15 +17,14 @@ def get_day():
 def login(username, password):
 
     session = requests.Session()
+
+
     session.headers = {
         'accept': 'text/html, application/xhtml+xml',
         'accept-encoding': 'plain',
         'referer':  'https://auth.anny.eu/',
         'origin': 'https://auth.anny.eu',
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0',
-        'x-requested-with': 'XMLHttpRequest',
-        'x-inertia': 'true',
-        'x-inertia-version': '66b32acea13402d3aef4488ccd239c93',
     }
 
     r = session.get(
@@ -33,6 +32,25 @@ def login(username, password):
     )
 
     session.headers['X-XSRF-TOKEN'] = urllib.parse.unquote(r.cookies['XSRF-TOKEN'])
+
+    match = re.search(r'data-page="(.*?)"', r.text)
+    if match:
+        decoded = html.unescape(match.group(1))
+        version_match = re.search(r'"version"\s*:\s*"([a-f0-9]{32})"', decoded)
+        if version_match:
+            x_inertia_version = version_match.group(1)
+        else:
+            x_inertia_version = '66b32acea13402d3aef4488ccd239c93'
+
+
+
+    session.headers.update(
+        {
+            'x-requested-with': 'XMLHttpRequest',
+            'x-inertia': 'true',
+            'x-inertia-version': x_inertia_version,
+        }
+    )
 
     r2 = session.post(
         'https://auth.anny.eu/login/sso',
