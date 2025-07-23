@@ -159,7 +159,13 @@ def test_reservation():
         }
     )
 
-    ressource_id = pre.json()['data'][0]['id']
+    ressources = pre.json()['data']
+
+    if len(ressources) <= 0:
+        print("No slots available anymore!")
+        return False
+
+    ressource_id = ressources[0]['id']
 
     r = ses.post(
         'https://b.anny.eu/api/v1/order/bookings?include=customer,voucher,bookings.booking_add_ons.add_on.cover_image,bookings.sub_bookings.resource,bookings.sub_bookings.service,bookings.series_bookings,bookings.customer,bookings.service.custom_forms.custom_fields,bookings.cancellation_policy,bookings.resource.cover_image,bookings.resource.parent,bookings.resource.category,bookings.reminders,bookings.booking_series,sub_orders.bookings,sub_orders.organization.legal_documents&stateless=1',
