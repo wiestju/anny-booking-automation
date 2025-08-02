@@ -23,8 +23,11 @@ class BookingClient:
             'filter[available_from]': start,
             'filter[available_to]': end,
             'filter[availability_exact_match]': 1,
-            'filter[availability_service_id]': SERVICE_ID,
+            'filter[exclude_hidden]': 0,
+            'filter[exclude_child_resources]': 0,
+            'filter[availability_service_id]': int(SERVICE_ID),
             'filter[include_unavailable]': 0,
+            'filter[pre_order_ids]': '',
             'sort': 'name'
         })
         resources = response.json().get('data', [])
