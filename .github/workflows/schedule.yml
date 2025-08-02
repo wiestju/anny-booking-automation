@@ -1,4 +1,4 @@
-name: Running Library Reservation Script
+name: Daily Library Reservation Automation
 
 on:
   workflow_dispatch:
@@ -21,4 +21,4 @@ jobs:
           USERNAME: ${{ secrets.USERNAME }}
           PASSWORD: ${{ secrets.PASSWORD }}
         run: |
-          python kit.py
+          python main.py
