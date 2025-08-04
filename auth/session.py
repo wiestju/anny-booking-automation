@@ -17,6 +17,7 @@ class AnnySession:
             self._sso_login()
             self._kit_auth()
             self._consume_saml()
+            print("✅ Login successful.")
             return self.session.cookies
         except Exception as e:
             print(f"[Login Error] {e}")

@@ -1,13 +1,19 @@
+import datetime
 import os
+import time
+
 from dotenv import load_dotenv
 from auth.session import AnnySession
 from booking.client import BookingClient
 from utils.helpers import get_future_datetime
+import pytz
 
 def main():
     load_dotenv('.env', override=True)
     username = os.getenv("USERNAME")
     password = os.getenv("PASSWORD")
+
+    start_time = datetime.datetime.now(pytz.timezone('Europe/Berlin'))
 
     if not username or not password:
         print("❌ Missing USERNAME or PASSWORD in .env")
@@ -20,6 +26,10 @@ def main():
         return
 
     booking = BookingClient(cookies)
+
+    while start_time.day == datetime.datetime.now(pytz.timezone('Europe/Berlin')).day:
+        time.sleep(1)
+
     start = get_future_datetime(hour="13:00:00")
     end = get_future_datetime(hour="18:00:00")
 
