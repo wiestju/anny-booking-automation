@@ -30,15 +30,28 @@ def main():
     while start_time.day == datetime.datetime.now(pytz.timezone('Europe/Berlin')).day:
         time.sleep(1)
 
-    start = get_future_datetime(hour="13:00:00")
-    end = get_future_datetime(hour="18:00:00")
+    times = [
+        {
+            'start': '13:00:00',
+            'end': '18:00:00'
+        },
+        {
+            'start': '09:00:00',
+            'end': '12:00:00'
+        }
+    ]
 
-    resource_id = booking.find_available_resource(start, end)
+    for time_ in times:
 
-    if resource_id:
-        booking.reserve(resource_id, start, end)
-    else:
-        print("⚠️ No available slots found.")
+        start = get_future_datetime(hour=time_['start'])
+        end = get_future_datetime(hour=time_['end'])
+
+        resource_id = booking.find_available_resource(start, end)
+
+        if resource_id:
+            booking.reserve(resource_id, start, end)
+        else:
+            print("⚠️ No available slots found.")
 
 if __name__ == "__main__":
     main()
