@@ -6,12 +6,13 @@ This Python project automates booking of study spaces or resources via the [anny
 
 ## ⚙️ Features
 
-- 🔐 Automatic KIT login via SAML SSO
-- 📆 Configurable 3-days-ahead reservation window
-- 🔎 Auto-detection of available time slots
-- 🛠️ Clean and modular object-oriented codebase
-- 🔁 Fully automated execution using [cron-job.org](https://cron-job.org) + GitHub API
-- 📦 Easy to extend and maintain
+- 🔐 Automatic KIT login via SAML SSO  
+- 📆 Configurable 3-days-ahead reservation window  
+- 🔎 Auto-detection of available time slots  
+- ⏳ Pre-login shortly before midnight to instantly book a slot at 00:00  
+- 🛠️ Clean and modular object-oriented codebase  
+- 🔁 Fully automated execution using [cron-job.org](https://cron-job.org) + GitHub API  
+- 📦 Easy to extend and maintain  
 
 ---
 
@@ -74,31 +75,42 @@ PASSWORD=your_kit_password
 
 ## ⏱️ Automated Execution via cron-job.org + GitHub API
 
-To automate bookings (e.g. every morning), we use a hybrid approach:
+To maximize booking success, the script is triggered **two minutes before midnight** (e.g., 23:58).  
+It logs in to the KIT SAML SSO in advance, keeps the session alive, and **waits internally until exactly 00:00** to instantly book the best available slot as soon as new reservations open.
 
-- `cron-job.org` handles flexible scheduling (e.g. every 12 minutes)  
-- GitHub Actions executes the actual script using a repository dispatch event  
+The trigger is handled by:
+
+- `cron-job.org` for precise scheduling (e.g., 23:58 Europe/Berlin)  
+- GitHub Actions to run the actual script with credentials passed via GitHub Secrets  
 
 ### Why not just use `on: schedule`?
 
-GitHub Actions only supports fixed cron expressions (e.g. once per hour) and does **not** allow more frequent triggers like every 5 or 10 minutes.  
+GitHub Actions only supports fixed cron expressions (e.g., once per hour) and does **not** allow more frequent triggers like every 5 or 10 minutes.  
 Additionally, it suffers from two major issues:
 
-- ⏳ **Queue delay**: Workflows triggered via GitHub's `schedule` event are sometimes delayed by several minutes due to internal queue congestion. This can cause the booking script to miss the optimal reservation window.
-- 🕒 **Timezone limitations**: GitHub's cron system uses UTC without native timezone support. That means you need to manually convert your desired local time (e.g. Europe/Berlin) and keep adjusting for daylight saving time changes.
+- ⏳ **Queue delay**: Workflows triggered via GitHub's `schedule` event are sometimes delayed by several minutes due to internal queue congestion. This can cause the booking script to miss the optimal reservation window.  
+- 🕒 **Timezone limitations**: GitHub's cron system uses UTC without native timezone support. That means you need to manually convert your desired local time (e.g. Europe/Berlin) and keep adjusting for daylight saving time changes.  
 
 For these reasons, we use [cron-job.org](https://cron-job.org), which offers:
 
-- ✅ Precise minute-level scheduling
-- ✅ Native timezone selection (e.g. Europe/Berlin)
-- ✅ Immediate webhook execution with no delay
+- ✅ Precise minute-level scheduling  
+- ✅ Native timezone selection (e.g. Europe/Berlin)  
+- ✅ Immediate webhook execution with no delay  
 
-This ensures your booking script runs at exactly the right time.
-
+This ensures your booking script runs exactly when needed — already logged in and ready to act at 00:00.
 
 ---
 
 ### How it works
+
+1. `cron-job.org` triggers the GitHub Actions workflow at **23:58** (Europe/Berlin).  
+2. The script logs in via KIT SAML SSO and maintains an active session.  
+3. It waits internally until **00:00**.  
+4. As soon as new booking slots are released, it instantly reserves the first suitable slot.  
+
+---
+
+### Setup steps
 
 1. Set up a cron job on `cron-job.org` that sends a POST request to:
 
@@ -147,7 +159,6 @@ jobs:
           PASSWORD: ${{ secrets.PASSWORD }}
         run: |
           python main.py
-
 ```
 
 > 💡 Store your KIT credentials securely as [GitHub Secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets): `USERNAME` and `PASSWORD`.
