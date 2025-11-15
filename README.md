@@ -165,18 +165,6 @@ jobs:
 
 ---
 
-## 📜 License
-
-This project is licensed under the **MIT License**. See the [LICENSE](./LICENSE) file for full details.
-
----
-
-## 👤 Author
-
-Created by @wiestju
-
----
-
 ## 🤝 Contributing
 
 Pull requests are welcome! Feel free to open an issue or suggest features or improvements.
