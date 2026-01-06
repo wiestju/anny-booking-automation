@@ -7,6 +7,7 @@ from auth.session import AnnySession
 from booking.client import BookingClient
 from utils.helpers import get_future_datetime
 import pytz
+from config.constants import RESSOURCE_ID
 
 def main():
     load_dotenv('.env', override=True)
@@ -50,7 +51,10 @@ def main():
         start = get_future_datetime(hour=time_['start'])
         end = get_future_datetime(hour=time_['end'])
 
-        resource_id = booking.find_available_resource(start, end)
+        if RESSOURCE_ID:
+            resource_id = RESSOURCE_ID
+        else:
+            resource_id = booking.find_available_resource(start, end)
 
         if resource_id:
             booking.reserve(resource_id, start, end)
