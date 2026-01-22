@@ -1,26 +1,37 @@
 import requests
 import urllib.parse
 import re
-import html
 from config.constants import AUTH_BASE_URL, ANNY_BASE_URL, DEFAULT_HEADERS
 from utils.helpers import extract_html_value
+from auth.providers import get_provider, SSOProvider
+
 
 class AnnySession:
-    def __init__(self, username, password):
+    def __init__(self, username: str, password: str, provider_name: str = "kit"):
         self.session = requests.Session()
         self.username = username
         self.password = password
+
+        # Initialize the SSO provider
+        provider_class = get_provider(provider_name)
+        self.provider: SSOProvider = provider_class(username, password)
 
     def login(self):
         try:
             self._init_headers()
             self._sso_login()
-            self._kit_auth()
+            self._provider_auth()
             self._consume_saml()
-            print("✅ Login successful.")
+            print(f"✅ Login successful via {self.provider.name}.")
             return self.session.cookies
-        except Exception as e:
+        except requests.RequestException as e:
+            print(f"[Login Error] Network error: {type(e).__name__}")
+            return None
+        except ValueError as e:
             print(f"[Login Error] {e}")
+            return None
+        except KeyError as e:
+            print(f"[Login Error] Missing expected field: {e}")
             return None
 
     def _init_headers(self):
@@ -45,32 +56,17 @@ class AnnySession:
             'x-inertia-version': x_inertia_version
         })
 
-        r2 = self.session.post(f"{AUTH_BASE_URL}/login/sso", json={"domain": "kit.edu"})
+        r2 = self.session.post(f"{AUTH_BASE_URL}/login/sso", json={"domain": self.provider.domain})
         redirect_url = r2.headers['x-inertia-location']
-        self.redirect_response = self.session.get(redirect_url)
+        redirect_response = self.session.get(redirect_url)
 
-    def _kit_auth(self):
-        self.session.headers.pop('x-requested-with', None)
-        self.session.headers.pop('x-inertia', None)
-        self.session.headers.pop('x-inertia-version', None)
+        # Pass session and redirect response to provider
+        self.provider.set_session(self.session)
+        self.provider.set_redirect_response(redirect_response)
 
-        csrf_token = extract_html_value(self.redirect_response.text, r'name="csrf_token" value="([^"]+)"')
-
-        r4 = self.session.post(
-            'https://idp.scc.kit.edu/idp/profile/SAML2/Redirect/SSO?execution=e1s1',
-            data={
-                'csrf_token': csrf_token,
-                'j_username': self.username,
-                'j_password': self.password,
-                '_eventId_proceed': '',
-                'fudis_web_authn_assertion_input': '',
-            }
-        )
-
-        if "/consume" not in html.unescape(r4.text):
-            raise Exception("KIT authentication failed")
-
-        self.saml_response_html = r4.text
+    def _provider_auth(self):
+        """Delegate authentication to the SSO provider."""
+        self.saml_response_html = self.provider.authenticate()
 
     def _consume_saml(self):
         consume_url = extract_html_value(self.saml_response_html, r'form action="([^"]+)"')

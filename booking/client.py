@@ -1,6 +1,6 @@
 import requests
+from requests.exceptions import JSONDecodeError
 from config.constants import RESOURCE_URL, BOOKING_API_BASE, CHECKOUT_FORM_API, ANNY_BASE_URL, SERVICE_ID
-from utils.helpers import extract_html_value
 
 class BookingClient:
     def __init__(self, cookies):
@@ -30,7 +30,14 @@ class BookingClient:
             'filter[pre_order_ids]': '',
             'sort': 'name'
         })
-        resources = response.json().get('data', [])
+        if not response.ok:
+            print(f"❌ Failed to fetch resources: HTTP {response.status_code}")
+            return None
+        try:
+            resources = response.json().get('data', [])
+        except (ValueError, JSONDecodeError):
+            print(f"❌ Invalid JSON response when fetching resources: {response.text[:200]}")
+            return None
         return resources[0]['id'] if resources else None
 
     def reserve(self, resource_id, start, end):
@@ -50,15 +57,32 @@ class BookingClient:
         )
 
         if not booking.ok:
-            print("❌ Slot already taken.")
+            print(f"❌ Booking failed: HTTP {booking.status_code}")
             return False
 
-        data = booking.json().get("data", {})
+        try:
+            data = booking.json().get("data", {})
+        except (ValueError, JSONDecodeError):
+            print(f"❌ Invalid JSON response from booking request: {booking.text[:200]}")
+            return False
+
         oid = data.get("id")
         oat = data.get("attributes", {}).get("access_token")
 
+        if not oid or not oat:
+            print("❌ Missing booking ID or access token in response")
+            return False
+
         checkout = self.session.get(f"{CHECKOUT_FORM_API}?oid={oid}&oat={oat}&stateless=1")
-        customer = checkout.json().get("default", {}).get("customer", {})
+        if not checkout.ok:
+            print(f"❌ Checkout form failed: HTTP {checkout.status_code}")
+            return False
+
+        try:
+            customer = checkout.json().get("default", {}).get("customer", {})
+        except (ValueError, JSONDecodeError):
+            print(f"❌ Invalid JSON response from checkout form: {checkout.text[:200]}")
+            return False
 
         final = self.session.post(
             f"{BOOKING_API_BASE}/order?oid={oid}&oat={oat}&stateless=1",

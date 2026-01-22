@@ -1,17 +1,17 @@
-# 📚 KIT Anny Booking Automation
+# 📚 Anny Booking Automation
 
-This Python project automates booking of study spaces or resources via the [anny.eu](https://anny.eu) platform used by the KIT (Karlsruhe Institute of Technology) library system. It logs in automatically using KIT SAML SSO, searches for available slots, and makes bookings without user interaction — ideal for recurring reservations.
+This Python project automates booking of study spaces or resources via the [anny.eu](https://anny.eu) platform used by university library systems. It logs in automatically using SAML SSO (with pluggable provider support), searches for available slots, and makes bookings without user interaction — ideal for recurring reservations.
 
 ---
 
 ## ⚙️ Features
 
-- 🔐 Automatic KIT login via SAML SSO  
-- 📆 Configurable 3-days-ahead reservation window  
-- 🔎 Auto-detection of available time slots  
-- ⏳ Pre-login shortly before midnight to instantly book a slot at 00:00  
-- 🛠️ Clean and modular object-oriented codebase  
-- 🔁 Fully automated execution using [cron-job.org](https://cron-job.org) + GitHub API  
+- 🔐 Pluggable SSO providers (KIT included, easily extendable for other universities)
+- 📆 Configurable 3-days-ahead reservation window
+- 🔎 Auto-detection of available time slots
+- ⏳ Smart midnight wait: only waits if within 10 minutes of midnight, otherwise executes immediately
+- 🛠️ Clean and modular object-oriented codebase
+- 🔁 Fully automated execution using [cron-job.org](https://cron-job.org) + GitHub API
 - 📦 Easy to extend and maintain  
 
 ---
@@ -25,13 +25,17 @@ anny_booking/
 ├── requirements.txt             # Python dependencies
 │
 ├── auth/
-│   └── session.py               # AnnySession class (login logic)
+│   ├── session.py               # AnnySession class (login logic)
+│   └── providers/               # SSO provider implementations
+│       ├── __init__.py          # Provider registry
+│       ├── base.py              # Abstract base class for providers
+│       └── kit.py               # KIT (Karlsruhe) SSO provider
 │
 ├── booking/
 │   └── client.py                # BookingClient class (resource booking)
 │
 ├── config/
-│   └── constants.py             # API URLs and shared constants
+│   └── constants.py             # API URLs, timezone, SSO provider, and shared constants
 │
 ├── utils/
 │   └── helpers.py               # Utility functions
@@ -71,6 +75,46 @@ PASSWORD=your_kit_password
 
 > 🔒 Never commit this file to version control!
 
+### 4. Configure SSO provider
+
+In `config/constants.py`, set your SSO provider:
+
+```python
+SSO_PROVIDER = "kit"  # Available: kit (add more in auth/providers/)
+```
+
+---
+
+## 🔌 Adding a New SSO Provider
+
+To add support for another university (e.g., TUM), create a new file `auth/providers/tum.py`:
+
+```python
+from auth.providers.base import SSOProvider
+from utils.helpers import extract_html_value
+
+class TUMProvider(SSOProvider):
+    name = "TUM"
+    domain = "tum.de"
+
+    def authenticate(self) -> str:
+        # Implement TUM-specific SAML authentication
+        # Use self.session, self.redirect_response, self.username, self.password
+        # Return the HTML containing the SAMLResponse
+        pass
+```
+
+Then register it in `auth/providers/__init__.py`:
+
+```python
+from auth.providers.tum import TUMProvider
+
+PROVIDERS: dict[str, type[SSOProvider]] = {
+    "kit": KITProvider,
+    "tum": TUMProvider,
+}
+```
+
 ---
 
 ## ⏱️ Automated Execution via cron-job.org + GitHub API
@@ -103,9 +147,9 @@ This ensures your booking script runs exactly when needed — already logged in 
 
 ### How it works
 
-1. `cron-job.org` triggers the GitHub Actions workflow at **23:58** (Europe/Berlin).  
-2. The script logs in via KIT SAML SSO and maintains an active session.  
-3. It waits internally until **00:00**.  
+1. `cron-job.org` triggers the GitHub Actions workflow at **23:58** (Europe/Berlin).
+2. The script logs in via your configured SSO provider and maintains an active session.
+3. If within 10 minutes of midnight, it waits until **00:00**. Otherwise, it executes immediately (useful for testing or manual runs).
 4. As soon as new booking slots are released, it instantly reserves the first suitable slot.  
 
 ---
@@ -161,7 +205,7 @@ jobs:
           python main.py
 ```
 
-> 💡 Store your KIT credentials securely as [GitHub Secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets): `USERNAME` and `PASSWORD`.
+> 💡 Store your university credentials securely as [GitHub Secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets): `USERNAME` and `PASSWORD`.
 
 ---
 
