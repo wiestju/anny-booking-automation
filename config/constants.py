@@ -4,7 +4,7 @@ BOOKING_API_BASE = "https://b.anny.eu/api/v1"
 CHECKOUT_FORM_API = "https://b.anny.eu/api/ui/checkout-form"
 RESOURCE_URL = f"{BOOKING_API_BASE}/resources/1-lehrbuchsammlung-eg-und-1-og/children"
 SERVICE_ID = "449"
-RESOURCE_ID = "5960"  # Will be set dynamically if None, else use the given ID
+RESOURCE_ID = None # "5957"  # Will be set dynamically if None, else use the given ID
 TIMEZONE = "Europe/Berlin"
 SSO_PROVIDER = "kit"  # Available: kit (add more in auth/providers/)
 

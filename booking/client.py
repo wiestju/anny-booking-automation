@@ -38,11 +38,15 @@ class BookingClient:
         except (ValueError, JSONDecodeError):
             print(f"❌ Invalid JSON response when fetching resources: {response.text[:200]}")
             return None
-        return resources[0]['id'] if resources else None
+        return resources[-1]['id'] if resources else None
 
     def reserve(self, resource_id, start, end):
         booking = self.session.post(
-            f"{BOOKING_API_BASE}/order/bookings?include=customer&stateless=1",
+            f"{BOOKING_API_BASE}/order/bookings",
+            params={
+                'stateless': '1',
+                'include': 'customer,voucher,bookings.booking_add_ons.add_on.cover_image,bookings.sub_bookings.resource,bookings.sub_bookings.service,bookings.customer,bookings.service.custom_forms.custom_fields,bookings.service.add_ons.cover_image,bookings.service.add_ons.group,bookings.cancellation_policy,bookings.resource.cover_image,bookings.resource.parent,bookings.resource.location,bookings.resource.category,bookings.reminders,bookings.booking_series,bookings.sequenced_bookings.resource,bookings.sequenced_bookings.service,bookings.sequenced_bookings.service.add_ons.cover_image,bookings.sequenced_bookings.service.add_ons.group,bookings.booking_participants,sub_orders.bookings,sub_orders.organization.legal_documents'
+            },
             json={
                 "resource_id": [resource_id],
                 "service_id": {SERVICE_ID: 1},
