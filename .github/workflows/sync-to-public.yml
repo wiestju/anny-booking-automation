@@ -28,9 +28,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Remove sync workflow and push to public repo
+      - name: Verify token works
         env:
           GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
+        run: |
+          echo "Testing token with GitHub API..."
+          gh api user -q '.login' || echo "❌ Token invalid or no user scope"
+          echo "Testing repo access..."
+          gh api repos/wiestju/anny-booking-automation -q '.full_name' || echo "❌ No access to repo"
+
+      - name: Remove sync workflow and push to public repo
+        env:
+          TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
         run: |
           # Configure git
           git config user.name "github-actions[bot]"
@@ -43,8 +52,8 @@ jobs:
           git rm .github/workflows/sync-to-public.yml
           git commit -m "Remove sync workflow for public repo"
 
-          # Configure git to use gh for authentication
-          gh auth setup-git
+          # Explicitly set credentials for the public repo
+          git config --global credential.https://github.com.helper '!f() { echo "username=x-access-token"; echo "password=${TOKEN}"; }; f'
 
           # Push to public repo
           git remote add public https://github.com/wiestju/anny-booking-automation.git
