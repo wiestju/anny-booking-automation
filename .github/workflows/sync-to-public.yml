@@ -10,54 +10,27 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Check if token is set
-        env:
-          TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
-        run: |
-          if [ -z "$TOKEN" ]; then
-            echo "❌ ERROR: PUBLIC_REPO_TOKEN secret is not set!"
-            exit 1
-          else
-            echo "✅ PUBLIC_REPO_TOKEN is set"
-            echo "Token starts with: ${TOKEN:0:4}..."
-            echo "Token length: ${#TOKEN}"
-          fi
-
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Verify token works
-        env:
-          GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
-        run: |
-          echo "Testing token with GitHub API..."
-          gh api user -q '.login' || echo "❌ Token invalid or no user scope"
-          echo "Testing repo access..."
-          gh api repos/wiestju/anny-booking-automation -q '.full_name' || echo "❌ No access to repo"
-
-      - name: Remove sync workflow and push to public repo
+      - name: Sync to public repo
         env:
           TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
         run: |
-          # Configure git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Create a temporary branch for the filtered push
+          # Create branch without sync workflow
           git checkout -b temp-sync-branch
-
-          # Remove the sync workflow file
           git rm .github/workflows/sync-to-public.yml
           git commit -m "Remove sync workflow for public repo"
 
-          # Remove ALL existing credential helpers and use store
-          git config --global --unset-all credential.helper || true
+          # Setup credentials and push
           git config --global credential.helper store
           echo "https://x-access-token:${TOKEN}@github.com" > ~/.git-credentials
 
-          # Push to public repo
           git remote add public https://github.com/wiestju/anny-booking-automation.git
           git push public temp-sync-branch:main --force
