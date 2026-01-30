@@ -11,12 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check if token is set
+        env:
+          TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
         run: |
-          if [ -z "${{ secrets.PUBLIC_REPO_TOKEN }}" ]; then
+          if [ -z "$TOKEN" ]; then
             echo "❌ ERROR: PUBLIC_REPO_TOKEN secret is not set!"
             exit 1
           else
             echo "✅ PUBLIC_REPO_TOKEN is set"
+            echo "Token starts with: ${TOKEN:0:4}..."
+            echo "Token length: ${#TOKEN}"
           fi
 
       - name: Checkout
@@ -26,7 +30,7 @@ jobs:
 
       - name: Remove sync workflow and push to public repo
         env:
-          TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
+          GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
         run: |
           # Configure git
           git config user.name "github-actions[bot]"
@@ -39,6 +43,9 @@ jobs:
           git rm .github/workflows/sync-to-public.yml
           git commit -m "Remove sync workflow for public repo"
 
-          # Push to public repo using env var (more secure)
-          git remote add public "https://x-access-token:${TOKEN}@github.com/wiestju/anny-booking-automation.git"
+          # Configure git to use gh for authentication
+          gh auth setup-git
+
+          # Push to public repo
+          git remote add public https://github.com/wiestju/anny-booking-automation.git
           git push public temp-sync-branch:main --force
