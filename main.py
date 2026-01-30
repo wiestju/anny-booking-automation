@@ -7,7 +7,7 @@ from auth.session import AnnySession
 from booking.client import BookingClient
 from utils.helpers import get_future_datetime
 import pytz
-from config.constants import RESOURCE_ID, TIMEZONE, SSO_PROVIDER
+from config.constants import RESOURCE_ID, TIMEZONE, SSO_PROVIDER, BOOKING_TIMES
 
 def main():
     load_dotenv('.env', override=True)
@@ -40,22 +40,7 @@ def main():
     elif seconds_until_midnight > max_wait_seconds:
         print(f"⚡ More than 10 min until midnight, executing immediately...")
 
-    times = [
-        {
-            'start': '14:00:00',
-            'end': '19:00:00'
-        },
-        {
-            'start': '09:00:00',
-            'end': '13:00:00'
-        },
-        {
-            'start': '20:00:00',
-            'end': '24:00:00'
-        },
-    ]
-
-    for time_ in times:
+    for time_ in BOOKING_TIMES:
         try:
             start = get_future_datetime(hour=time_['start'])
             end = get_future_datetime(hour=time_['end'])

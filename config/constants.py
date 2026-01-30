@@ -13,3 +13,19 @@ DEFAULT_HEADERS = {
     'accept': 'application/vnd.api+json',
     'accept-encoding': 'plain'
 }
+
+# Booking time slots (in order of priority)
+BOOKING_TIMES = [
+    {
+        'start': '14:00:00',
+        'end': '19:00:00'
+    },
+    {
+        'start': '09:00:00',
+        'end': '13:00:00'
+    },
+    {
+        'start': '20:00:00',
+        'end': '23:45:00'
+    },
+]
