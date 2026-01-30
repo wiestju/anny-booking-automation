@@ -1,0 +1,33 @@
+name: Sync to Public Repo
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Remove sync workflow and push to public repo
+        run: |
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create a temporary branch for the filtered push
+          git checkout -b temp-sync-branch
+
+          # Remove the sync workflow file
+          git rm .github/workflows/sync-to-public.yml
+          git commit -m "Remove sync workflow for public repo"
+
+          # Push to public repo
+          git remote add public https://x-access-token:${{ secrets.PUBLIC_REPO_TOKEN }}@github.com/wiestju/anny-booking-automation.git
+          git push public temp-sync-branch:main --force
