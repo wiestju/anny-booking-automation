@@ -52,8 +52,10 @@ jobs:
           git rm .github/workflows/sync-to-public.yml
           git commit -m "Remove sync workflow for public repo"
 
-          # Explicitly set credentials for the public repo
-          git config --global credential.https://github.com.helper '!f() { echo "username=x-access-token"; echo "password=${TOKEN}"; }; f'
+          # Remove ALL existing credential helpers and use store
+          git config --global --unset-all credential.helper || true
+          git config --global credential.helper store
+          echo "https://x-access-token:${TOKEN}@github.com" > ~/.git-credentials
 
           # Push to public repo
           git remote add public https://github.com/wiestju/anny-booking-automation.git
