@@ -8,6 +8,7 @@ class SSOProvider(ABC):
     # Override these in subclasses
     name: str = "base"
     domain: str = ""
+    available_days_ahead: int = 3
 
     def __init__(self, username: str, password: str):
         self.username = username
