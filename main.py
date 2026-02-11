@@ -42,8 +42,8 @@ def main():
 
     for time_ in BOOKING_TIMES:
         try:
-            start = get_future_datetime(hour=time_['start'])
-            end = get_future_datetime(hour=time_['end'])
+            start = get_future_datetime(time_string=time_['start'])
+            end = get_future_datetime(time_string=time_['end'])
 
             if RESOURCE_ID:
                 resource_id = RESOURCE_ID
