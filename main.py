@@ -1,26 +1,20 @@
 import datetime
-import os
 import time
 
-from dotenv import load_dotenv
 from auth.session import AnnySession
 from booking.client import BookingClient
 from utils.helpers import get_future_datetime
 import pytz
-from config.constants import RESOURCE_ID, TIMEZONE, SSO_PROVIDER, BOOKING_TIMES
+from config.constants import USERNAME, PASSWORD, RESOURCE_ID, TIMEZONE, SSO_PROVIDER, BOOKING_TIMES
 
 def main():
-    load_dotenv('.env', override=True)
-    username = os.getenv("USERNAME")
-    password = os.getenv("PASSWORD")
-
     tz = pytz.timezone(TIMEZONE)
 
-    if not username or not password:
+    if not USERNAME or not PASSWORD:
         print("❌ Missing USERNAME or PASSWORD in .env")
         return
 
-    session = AnnySession(username, password, provider_name=SSO_PROVIDER)
+    session = AnnySession(USERNAME, PASSWORD, provider_name=SSO_PROVIDER)
     cookies = session.login()
 
     if not cookies:

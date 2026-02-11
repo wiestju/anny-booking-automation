@@ -20,5 +20,11 @@ jobs:
         env:
           USERNAME: ${{ secrets.USERNAME }}
           PASSWORD: ${{ secrets.PASSWORD }}
+          TIMEZONE: ${{ vars.TIMEZONE }}
+          SSO_PROVIDER: ${{ vars.SSO_PROVIDER }}
+          RESOURCE_URL_PATH: ${{ vars.RESOURCE_URL_PATH }}
+          SERVICE_ID: ${{ vars.SERVICE_ID }}
+          RESOURCE_ID: ${{ vars.RESOURCE_ID }}
+          BOOKING_TIMES: ${{ vars.BOOKING_TIMES }}
         run: |
           python main.py
