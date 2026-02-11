@@ -43,8 +43,8 @@ def main():
     for time_ in BOOKING_TIMES:
         try:
             days_ahead = session.provider.available_days_ahead
-            start = get_future_datetime(days_ahead=days_ahead, hour=time_['start'])
-            end = get_future_datetime(days_ahead=days_ahead, hour=time_['end'])
+            start = get_future_datetime(days_ahead=days_ahead, time_string=time_['start'])
+            end = get_future_datetime(days_ahead=days_ahead, time_string=time_['end'])
 
             if RESOURCE_ID:
                 resource_id = RESOURCE_ID
