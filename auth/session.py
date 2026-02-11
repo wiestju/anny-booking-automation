@@ -7,7 +7,7 @@ from auth.providers import get_provider, SSOProvider
 
 
 class AnnySession:
-    def __init__(self, username: str, password: str, provider_name: str = "kit"):
+    def __init__(self, username: str, password: str, provider_name: str):
         self.session = requests.Session()
         self.username = username
         self.password = password

@@ -1,6 +1,7 @@
 import requests
 from requests.exceptions import JSONDecodeError
 from config.constants import RESOURCE_URL, BOOKING_API_BASE, CHECKOUT_FORM_API, ANNY_BASE_URL, SERVICE_ID
+import json
 
 class BookingClient:
     def __init__(self, cookies):
@@ -62,12 +63,19 @@ class BookingClient:
 
         if not booking.ok:
             print(f"❌ Booking failed: HTTP {booking.status_code}")
+            try:
+                errors = json.loads(booking.content)['errors']
+                print(f"  {errors[0]['title']}: {errors[0]['detail']}")
+            except KeyError:
+                pass
             return False
 
         try:
             data = booking.json().get("data", {})
         except (ValueError, JSONDecodeError):
-            print(f"❌ Invalid JSON response from booking request: {booking.text[:200]}")
+            print("❌ Invalid JSON response from booking request. Probably, timeslot is already taken:")
+            print(f"  resource_id: {resource_id}; start: {start}; end: {end}")
+            print(f"  response: {booking.text[:200]}")
             return False
 
         oid = data.get("id")
@@ -104,9 +112,9 @@ class BookingClient:
             }
         )
 
-        if final.ok:
-            print("✅ Reservation successful!")
-            return True
+        if not final.ok:
+            print("❌ Reservation failed.")
+            return False
 
-        print("❌ Reservation failed.")
-        return False
+        print("✅ Reservation successful!")
+        return True
