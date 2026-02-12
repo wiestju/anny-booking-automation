@@ -4,7 +4,7 @@ import time
 
 from dotenv import load_dotenv
 from auth.session import AnnySession
-from booking.client import BookingClient
+from booking.client import BookingClient, CheckoutException
 from utils.helpers import get_future_datetime
 import pytz
 from config.constants import RESOURCE_ID, USE_ANY_RESOURCE_ID, TIMEZONE, SSO_PROVIDER, BOOKING_TIMES
@@ -18,13 +18,17 @@ def main():
 
     if not username or not password:
         print("❌ Missing USERNAME or PASSWORD in .env")
-        return
+        return False
+
+    if not BOOKING_TIMES:
+        print("❌ Missing timeslots in BOOKING_TIMES")
+        return False
 
     session = AnnySession(username, password, provider_name=SSO_PROVIDER)
     cookies = session.login()
 
     if not cookies:
-        return
+        return False
 
     booking = BookingClient(cookies)
 
@@ -50,9 +54,8 @@ def main():
 
             if not USE_ANY_RESOURCE_ID:
                 if not RESOURCE_ID or RESOURCE_ID not in r_ids_available:
-                    print(f"⚠️ No available slots found for specified resource_id: {RESOURCE_ID}")
-                    return False
-
+                    print(f"⚠️ No available slots found for specified resource_id {RESOURCE_ID} for {time_['start']}-{time_['end']}")
+                    break
                 # specified resource id is available -> only use specified resource id
                 r_ids_available = [RESOURCE_ID]
             elif RESOURCE_ID and RESOURCE_ID in r_ids_available:
@@ -61,19 +64,22 @@ def main():
 
             # Try all resource ids available until booking is successful
             for i, resource_id in enumerate(r_ids_available):
-                success = booking.reserve(resource_id, start, end)
+                try:
+                    success = booking.reserve(resource_id, start, end)
+                except CheckoutException:
+                    # Reservation failed on checkout -> Booking limit exceeded for that timeslot -> try next booking time
+                    print(f"⚠️ You have probably exceeded your booking limit for {time_['start']}-{time_['end']}")
+                    break
+
                 if success:
-                    return True
+                    break
+
                 print(f"  Attempt {i + 1}/{len(r_ids_available)}")
             else:
-                print("⚠️ No available slots found.")
-                return False
+                print(f"⚠️ No available slots found for {time_['start']}-{time_['end']}")
         except Exception as e:
             print(f"❌ Error booking slot {time_['start']}-{time_['end']}: {e}")
-            return False
-    else:
-        print("❌ Missing timeslots in BOOKING_TIMES")
-        return False
+            break
 
 if __name__ == "__main__":
     main()

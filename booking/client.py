@@ -2,6 +2,11 @@ import requests
 from requests.exceptions import JSONDecodeError
 from config.constants import RESOURCE_URL, BOOKING_API_BASE, CHECKOUT_FORM_API, ANNY_BASE_URL, SERVICE_ID
 
+
+class CheckoutException(Exception):
+    pass
+
+
 class BookingClient:
     def __init__(self, cookies):
         self.session = requests.Session()
@@ -114,14 +119,14 @@ class BookingClient:
         )
 
         if not final.ok:
-            print(f"❌ Reservation failed: HTTP {final.status_code}")
+            print(f"❌ Checkout failed: HTTP {final.status_code}")
             try:
                 errors = final.json().get("errors", {})
                 print(f"  {errors[0]['title']}: {errors[0]['detail']}")
                 print(f"  resource_id: {resource_id}; start: {start}; end: {end}")
             except:
                 pass
-            return False
+            raise CheckoutException
 
         print("✅ Reservation successful!")
         return True
