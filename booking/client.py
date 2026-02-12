@@ -11,6 +11,7 @@ class BookingClient:
 
         self.session.headers.update({
             'authorization': f'Bearer {self.token}',
+            'accept': 'application/vnd.api+json',
             'content-type': 'application/vnd.api+json',
             'origin': ANNY_BASE_URL,
             'referer': ANNY_BASE_URL + '/',
@@ -66,6 +67,7 @@ class BookingClient:
             try:
                 errors = json.loads(booking.content)['errors']
                 print(f"  {errors[0]['title']}: {errors[0]['detail']}")
+                print(f"  resource_id: {resource_id}; start: {start}; end: {end}")
             except KeyError:
                 pass
             return False
@@ -73,7 +75,7 @@ class BookingClient:
         try:
             data = booking.json().get("data", {})
         except (ValueError, JSONDecodeError):
-            print("❌ Invalid JSON response from booking request. Probably, timeslot is already taken:")
+            print("❌ Invalid JSON response from booking request.")
             print(f"  resource_id: {resource_id}; start: {start}; end: {end}")
             print(f"  response: {booking.text[:200]}")
             return False
