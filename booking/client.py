@@ -17,7 +17,7 @@ class BookingClient:
             'user-agent': 'Mozilla/5.0'
         })
 
-    def find_available_resource(self, start, end):
+    def find_available_resources(self, start, end):
         response = self.session.get(RESOURCE_URL, params={
             'page[number]': 1,
             'page[size]': 250,
@@ -39,7 +39,7 @@ class BookingClient:
         except (ValueError, JSONDecodeError):
             print(f"❌ Invalid JSON response when fetching resources: {response.text[:200]}")
             return None
-        return resources[-1]['id'] if resources else None
+        return [r['id'] for r in resources]
 
     def reserve(self, resource_id, start, end):
         booking = self.session.post(
