@@ -1,7 +1,11 @@
 import requests
 from requests.exceptions import JSONDecodeError
 from config.constants import RESOURCE_URL, BOOKING_API_BASE, CHECKOUT_FORM_API, ANNY_BASE_URL, SERVICE_ID
-import json
+
+
+class CheckoutException(Exception):
+    pass
+
 
 class BookingClient:
     def __init__(self, cookies):
@@ -11,13 +15,14 @@ class BookingClient:
 
         self.session.headers.update({
             'authorization': f'Bearer {self.token}',
+            'accept': 'application/vnd.api+json',
             'content-type': 'application/vnd.api+json',
             'origin': ANNY_BASE_URL,
             'referer': ANNY_BASE_URL + '/',
             'user-agent': 'Mozilla/5.0'
         })
 
-    def find_available_resource(self, start, end):
+    def find_available_resources(self, start, end):
         response = self.session.get(RESOURCE_URL, params={
             'page[number]': 1,
             'page[size]': 250,
@@ -39,7 +44,7 @@ class BookingClient:
         except (ValueError, JSONDecodeError):
             print(f"❌ Invalid JSON response when fetching resources: {response.text[:200]}")
             return None
-        return resources[-1]['id'] if resources else None
+        return [r['id'] for r in resources]
 
     def reserve(self, resource_id, start, end):
         booking = self.session.post(
@@ -64,16 +69,17 @@ class BookingClient:
         if not booking.ok:
             print(f"❌ Booking failed: HTTP {booking.status_code}")
             try:
-                errors = json.loads(booking.content)['errors']
+                errors = booking.json().get("errors", {})
                 print(f"  {errors[0]['title']}: {errors[0]['detail']}")
-            except KeyError:
+                print(f"  resource_id: {resource_id}; start: {start}; end: {end}")
+            except:
                 pass
             return False
 
         try:
             data = booking.json().get("data", {})
         except (ValueError, JSONDecodeError):
-            print("❌ Invalid JSON response from booking request. Probably, timeslot is already taken:")
+            print("❌ Invalid JSON response from booking request.")
             print(f"  resource_id: {resource_id}; start: {start}; end: {end}")
             print(f"  response: {booking.text[:200]}")
             return False
@@ -113,8 +119,14 @@ class BookingClient:
         )
 
         if not final.ok:
-            print("❌ Reservation failed.")
-            return False
+            print(f"❌ Checkout failed: HTTP {final.status_code}")
+            try:
+                errors = final.json().get("errors", {})
+                print(f"  {errors[0]['title']}: {errors[0]['detail']}")
+                print(f"  resource_id: {resource_id}; start: {start}; end: {end}")
+            except:
+                pass
+            raise CheckoutException
 
         print("✅ Reservation successful!")
         return True
