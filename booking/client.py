@@ -67,7 +67,7 @@ class BookingClient:
                 errors = booking.json().get("errors", {})
                 print(f"  {errors[0]['title']}: {errors[0]['detail']}")
                 print(f"  resource_id: {resource_id}; start: {start}; end: {end}")
-            except (ValueError, JSONDecodeError, KeyError):
+            except:
                 pass
             return False
 
@@ -119,7 +119,7 @@ class BookingClient:
                 errors = final.json().get("errors", {})
                 print(f"  {errors[0]['title']}: {errors[0]['detail']}")
                 print(f"  resource_id: {resource_id}; start: {start}; end: {end}")
-            except (ValueError, JSONDecodeError, KeyError):
+            except:
                 pass
             return False
 
