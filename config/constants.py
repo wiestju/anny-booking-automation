@@ -8,7 +8,6 @@ CHECKOUT_FORM_API = "https://b.anny.eu/api/ui/checkout-form"
 
 DEFAULT_HEADERS = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0',
-    'accept': 'application/vnd.api+json',
     'accept-encoding': 'plain'
 }
 
@@ -26,6 +25,7 @@ SSO_PROVIDER = getenv("SSO_PROVIDER") or "kit"
 RESOURCE_URL_PATH = getenv("RESOURCE_URL_PATH") or "/resources/1-lehrbuchsammlung-eg-und-1-og/children"
 SERVICE_ID = getenv("SERVICE_ID") or "449"
 RESOURCE_ID = getenv("RESOURCE_ID") or None
+USE_ANY_RESOURCE_ID = getenv("USE_ANY_RESOURCE_ID") == "True"
 
 RESOURCE_URL = f"{BOOKING_API_BASE}{RESOURCE_URL_PATH}"
 

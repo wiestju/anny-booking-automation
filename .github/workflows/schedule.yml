@@ -25,6 +25,7 @@ jobs:
           RESOURCE_URL_PATH: ${{ vars.RESOURCE_URL_PATH }}
           SERVICE_ID: ${{ vars.SERVICE_ID }}
           RESOURCE_ID: ${{ vars.RESOURCE_ID }}
+          USE_ANY_RESOURCE_ID: ${{ vars.USE_ANY_RESOURCE_ID }}
           BOOKING_TIMES: ${{ vars.BOOKING_TIMES }}
         run: |
           python main.py
