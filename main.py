@@ -1,22 +1,16 @@
 import datetime
-import os
 import time
 
-from dotenv import load_dotenv
 from auth.session import AnnySession
 from booking.client import BookingClient, CheckoutException
 from utils.helpers import get_future_datetime
 import pytz
-from config.constants import RESOURCE_ID, USE_ANY_RESOURCE_ID, TIMEZONE, SSO_PROVIDER, BOOKING_TIMES
+from config.constants import USERNAME, PASSWORD, RESOURCE_IDS, USE_ANY_RESOURCE_ID, TIMEZONE, SSO_PROVIDER, BOOKING_TIMES
 
 def main():
-    load_dotenv('.env', override=True)
-    username = os.getenv("USERNAME")
-    password = os.getenv("PASSWORD")
-
     tz = pytz.timezone(TIMEZONE)
 
-    if not username or not password:
+    if not USERNAME or not PASSWORD:
         print("❌ Missing USERNAME or PASSWORD in .env")
         return False
 
@@ -24,7 +18,7 @@ def main():
         print("❌ Missing timeslots in BOOKING_TIMES")
         return False
 
-    session = AnnySession(username, password, provider_name=SSO_PROVIDER)
+    session = AnnySession(USERNAME, PASSWORD, provider_name=SSO_PROVIDER)
     cookies = session.login()
 
     if not cookies:
@@ -52,20 +46,19 @@ def main():
 
             r_ids_available = booking.find_available_resources(start, end)
 
-            if not USE_ANY_RESOURCE_ID:
-                if not RESOURCE_ID or RESOURCE_ID not in r_ids_available:
-                    print(f"⚠️ No available slots found for specified resource_id {RESOURCE_ID} for {time_['start']}-{time_['end']}")
-                    break
-                # specified resource id is available -> only use specified resource id
-                r_ids_available = [RESOURCE_ID]
-            elif RESOURCE_ID and RESOURCE_ID in r_ids_available:
-                # specified resource id is available -> ensure specified resource id is tried first
-                r_ids_available.insert(0, r_ids_available.pop(r_ids_available.index(RESOURCE_ID)))
+            r_ids_book = []
+            for r_id_av in RESOURCE_IDS:
+                if r_id_av in r_ids_available:
+                    r_ids_book.append(r_id_av)
+                    r_ids_available.remove(r_id_av)
 
-            # Try all resource ids available until booking is successful
-            for i, resource_id in enumerate(r_ids_available):
+            if USE_ANY_RESOURCE_ID:
+                r_ids_book += r_ids_available
+
+            # Iterate through resource ids until booking is successful
+            for i, r_id in enumerate(r_ids_book):
                 try:
-                    success = booking.reserve(resource_id, start, end)
+                    success = booking.reserve(r_id, start, end)
                 except CheckoutException:
                     # Reservation failed on checkout -> Booking limit exceeded for that timeslot -> try next booking time
                     print(f"⚠️ You have probably exceeded your booking limit for {time_['start']}-{time_['end']}")
@@ -74,7 +67,7 @@ def main():
                 if success:
                     break
 
-                print(f"  Attempt {i + 1}/{len(r_ids_available)}")
+                print(f"  Attempt {i + 1}/{len(r_ids_book)}")
             else:
                 print(f"⚠️ No available slots found for {time_['start']}-{time_['end']}")
         except Exception as e:
