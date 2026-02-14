@@ -24,12 +24,12 @@ TIMEZONE = getenv("TIMEZONE") or "Europe/Berlin"
 SSO_PROVIDER = getenv("SSO_PROVIDER") or "kit"
 RESOURCE_URL_PATH = getenv("RESOURCE_URL_PATH") or "/resources/1-lehrbuchsammlung-eg-und-1-og/children"
 SERVICE_ID = getenv("SERVICE_ID") or "449"
-RESOURCE_ID = getenv("RESOURCE_ID") or None
+RESOURCE_IDS = [i.strip() for i in getenv("RESOURCE_IDS").split(",")] if getenv("RESOURCE_IDS") else None
 USE_ANY_RESOURCE_ID = getenv("USE_ANY_RESOURCE_ID") == "True"
 
 RESOURCE_URL = f"{BOOKING_API_BASE}{RESOURCE_URL_PATH}"
 
 # Booking time slots (in order of priority)
-BOOKING_TIMES_CSV = getenv("BOOKING_TIMES") or "14:00:00-19:00:00,09:00:00-13:00:00,20:00:00-23:45:00"
+BOOKING_TIMES_CSV = getenv("BOOKING_TIMES") or "14:00:00-19:00:00, 09:00:00-13:00:00, 20:00:00-23:45:00"
 # create object with the format [{"start": start, "end": end}] from csv
-BOOKING_TIMES = [{"start": b.split("-")[0], "end": b.split("-")[1]} for b in BOOKING_TIMES_CSV.split(",")]
+BOOKING_TIMES = [{"start": b.split("-")[0].strip(), "end": b.split("-")[1].strip()} for b in BOOKING_TIMES_CSV.split(",")]
