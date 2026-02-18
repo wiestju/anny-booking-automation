@@ -103,7 +103,13 @@ class BookingClient:
             return False
 
         final = self.session.post(
-            f"{BOOKING_API_BASE}/order?oid={oid}&oat={oat}&stateless=1",
+            f"{BOOKING_API_BASE}/order",
+            params={
+                "stateless": "1",
+                "include": "customer,voucher,bookings.booking_add_ons.add_on.cover_image,bookings.sub_bookings.resource,bookings.sub_bookings.service,bookings.customer,bookings.service.custom_forms.custom_fields,bookings.service.add_ons.cover_image,bookings.service.add_ons.group,bookings.cancellation_policy,bookings.resource.cover_image,bookings.resource.parent,bookings.resource.location,bookings.resource.category,bookings.reminders,bookings.booking_series,bookings.sequenced_bookings.resource,bookings.sequenced_bookings.service,bookings.sequenced_bookings.service.add_ons.cover_image,bookings.sequenced_bookings.service.add_ons.group,bookings.booking_participants,sub_orders.bookings,sub_orders.organization.legal_documents",
+                "oid": oid,
+                "oat": oat
+            },
             json={
                 "customer": {
                     "given_name": customer.get("given_name"),
@@ -126,7 +132,24 @@ class BookingClient:
                 print(f"  resource_id: {resource_id}; start: {start}; end: {end}")
             except:
                 pass
+
+            # Clear checkout cart
+            clear_checkout = self.session.get(
+                f"{BOOKING_API_BASE}/order/bookings/delete-all",
+                params={
+                    "stateless": "1",
+                    "include": "customer,voucher,bookings.booking_add_ons.add_on.cover_image,bookings.sub_bookings.resource,bookings.sub_bookings.service,bookings.customer,bookings.service.custom_forms.custom_fields,bookings.service.add_ons.cover_image,bookings.service.add_ons.group,bookings.cancellation_policy,bookings.resource.cover_image,bookings.resource.parent,bookings.resource.location,bookings.resource.category,bookings.reminders,bookings.booking_series,bookings.sequenced_bookings.resource,bookings.sequenced_bookings.service,bookings.sequenced_bookings.service.add_ons.cover_image,bookings.sequenced_bookings.service.add_ons.group,bookings.booking_participants,sub_orders.bookings,sub_orders.organization.legal_documents",
+                    "oid": oid,
+                    "oat": oat
+                }
+            )
+            if clear_checkout.ok:
+                print(f"  Checkout cart has been cleared. Booking quota should be restored.")
+            else:
+                print(f"  Checkout cart could not be cleared. You might need to wait 15 minutes for your booking quota to be restored automatically again.")
+
             raise CheckoutException
 
         print("✅ Reservation successful!")
+        print(f"  resource_id: {resource_id}; start: {start}; end: {end}")
         return True
