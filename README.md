@@ -9,7 +9,7 @@ Automate study space reservations on [anny.eu](https://anny.eu) platforms used b
 - **Configurable time slots** - Set your preferred booking times in order of priority
 - **Resource priority** - Define preferred desk/room IDs; falls back to any available resource
 - **Environment-based config** - All settings (provider, times, resources) via `.env` / GitHub Secrets
-- **Automated execution** - Runs via GitHub Actions + cron-job.org for precise timing
+- **Automated execution** - Runs via GitHub Actions + cron-job.org, or as a self-hosted Linux cron job
 
 ## Quick Start
 
@@ -31,32 +31,21 @@ Copy `.env.example` to `.env` and fill in your values:
 cp .env.example .env
 ```
 
-```env
-# Mandatory
-USERNAME=your_university_username
-PASSWORD=your_university_password
+| Variable | Required | Default | Example | Description |
+|---|---|---|---|---|
+| `USERNAME` | **Yes** | — | `student123` | Your university login username |
+| `PASSWORD` | **Yes** | — | `secret` | Your university login password |
+| `SSO_PROVIDER` | **Yes** | — | `kit` | SSO provider (`kit` or `tum`) |
+| `RESOURCE_URL_PATH` | **Yes** | — | `/resources/1-lehrbuchsammlung-eg-und-1-og/children` | API path for your library's rooms |
+| `SERVICE_ID` | **Yes** | — | `449` | Service ID for your library |
+| `TIMEZONE` | No | `Europe/Berlin` | `Europe/Berlin` | Timezone for the midnight wait |
+| `BOOKING_TIMES` | No | `14:00:00-19:00:00, 09:00:00-13:00:00, 20:00:00-23:45:00` | `14:00:00-19:00:00, 09:00:00-13:00:00` | Desired time slots in priority order (`hh:mm:ss-hh:mm:ss`, comma-separated) |
+| `RESOURCE_IDS` | No | — | `5957, 5958` | Preferred resource IDs tried first (comma-separated). Omit to skip. |
+| `USE_ANY_RESOURCE_ID` | No | `False` | `True` | If `True`, falls back to any available resource after trying `RESOURCE_IDS` |
 
-# Timezone (default: Europe/Berlin)
-TIMEZONE="Europe/Berlin"
+See `.env.example` for a ready-to-copy template including a TUM example.
 
-# Booking time slots in order of priority (format: hh:mm:ss-hh:mm:ss, comma-separated)
-BOOKING_TIMES="14:00:00-19:00:00, 09:00:00-13:00:00, 20:00:00-23:45:00"
-
-# SSO provider - available: "kit", "tum" (add more in auth/providers/)
-SSO_PROVIDER="kit"
-
-# Resource configuration
-RESOURCE_URL_PATH="/resources/1-lehrbuchsammlung-eg-und-1-og/children"
-SERVICE_ID="449"
-
-# Preferred resource IDs tried first (comma-separated). Leave empty to skip.
-RESOURCE_IDS=""
-
-# Set to "True" to iterate through all available resources after trying RESOURCE_IDS
-USE_ANY_RESOURCE_ID="True"
-```
-
-See `.env.example` for a full reference including a TUM example.
+> **Note:** At least one of `RESOURCE_IDS` or `USE_ANY_RESOURCE_ID=True` must be set, otherwise no resource will be booked.
 
 ### 3. Run locally
 
@@ -66,9 +55,13 @@ python main.py
 
 ## Automated Scheduling
 
-For daily automated bookings, use GitHub Actions triggered by [cron-job.org](https://cron-job.org).
+Two options are supported: **GitHub Actions** (no server needed) or a **self-hosted Linux cron job** (for users who run their own server).
 
-### Why cron-job.org instead of GitHub's schedule?
+---
+
+### Option A: GitHub Actions + cron-job.org
+
+#### Why cron-job.org instead of GitHub's schedule?
 
 GitHub Actions `on: schedule` has two issues:
 - **Queue delays** - Workflows can be delayed by minutes, missing the booking window
@@ -76,9 +69,9 @@ GitHub Actions `on: schedule` has two issues:
 
 cron-job.org provides precise, timezone-aware scheduling with no delays.
 
-### Setup
+#### Setup
 
-#### 1. Add GitHub Secrets
+##### 1. Add GitHub Secrets
 
 In your repository: **Settings > Secrets and variables > Actions**
 
@@ -96,13 +89,13 @@ Add all variables from your `.env` file as repository secrets. At a minimum:
 | `RESOURCE_IDS` | Preferred resource IDs (optional) |
 | `USE_ANY_RESOURCE_ID` | `True` or `False` |
 
-#### 2. Create a GitHub Personal Access Token
+##### 2. Create a GitHub Personal Access Token
 
 1. Go to [GitHub Settings > Developer settings > Personal access tokens](https://github.com/settings/tokens)
 2. Generate a token with `repo` scope (or fine-grained with Actions read/write)
 3. Copy the token
 
-#### 3. Configure cron-job.org
+##### 3. Configure cron-job.org
 
 Create a new cron job with these settings:
 
@@ -125,12 +118,55 @@ Accept: application/vnd.github.v3+json
 {"ref": "main"}
 ```
 
-### How it works
+#### How it works
 
 1. cron-job.org triggers the workflow at **23:58**
 2. The script logs in and establishes a session
 3. It waits until **00:00** when new slots become available
 4. Instantly books the first available slot from your priority list
+
+---
+
+### Option B: Self-hosted Linux Cron
+
+If you have a Linux server (or a Raspberry Pi, VPS, etc.) you can run the script directly without GitHub Actions.
+
+#### Setup
+
+1. **Clone and install** the project on your server (see [Quick Start](#quick-start)).
+
+2. **Create your `.env`** file in the repo root with all required variables.
+
+3. **Make the run script executable:**
+
+```bash
+chmod +x scripts/run.sh
+```
+
+4. **Add a cron entry** that fires at **23:58** every night:
+
+```bash
+crontab -e
+```
+
+Add this line (replace `/path/to` with the actual path):
+
+```
+58 23 * * * /path/to/anny-booking-automation/scripts/run.sh >> /path/to/anny-booking-automation/logs/cron.log 2>&1
+```
+
+> **Tip:** Create the logs directory first: `mkdir -p /path/to/anny-booking-automation/logs`
+
+The script activates the virtual environment and runs `main.py` automatically. Logs are written to `logs/cron.log`.
+
+#### How it works
+
+1. The system cron fires `scripts/run.sh` at **23:58** in your server's local time
+2. The script logs in and establishes a session
+3. It waits until **00:00** when new slots become available
+4. Instantly books the first available slot from your priority list
+
+> **Timezone note:** The script uses the `TIMEZONE` env var to determine when midnight occurs. Make sure your server's local time matches your target timezone, or set `TIMEZONE` explicitly in your `.env`.
 
 ## Project Structure
 
@@ -138,6 +174,8 @@ Accept: application/vnd.github.v3+json
 anny-booking-automation/
 ├── main.py                 # Entry point
 ├── .env.example            # Example environment configuration
+├── scripts/
+│   └── run.sh              # Wrapper script for self-hosted Linux cron
 ├── config/
 │   └── constants.py        # Loads settings from environment / .env
 ├── auth/
