@@ -4,9 +4,11 @@ Automate study space reservations on [anny.eu](https://anny.eu) platforms used b
 
 ## Features
 
-- **Pluggable SSO** - KIT provider included, easily extendable for other universities
+- **Pluggable SSO** - KIT and TUM providers included, easily extendable for other universities
 - **Smart scheduling** - Waits until midnight when slots open, or runs immediately for testing
 - **Configurable time slots** - Set your preferred booking times in order of priority
+- **Resource priority** - Define preferred desk/room IDs; falls back to any available resource
+- **Environment-based config** - All settings (provider, times, resources) via `.env` / GitHub Secrets
 - **Automated execution** - Runs via GitHub Actions + cron-job.org for precise timing
 
 ## Quick Start
@@ -21,31 +23,42 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Configure credentials
+### 2. Configure environment
 
-Create a `.env` file:
+Copy `.env.example` to `.env` and fill in your values:
+
+```bash
+cp .env.example .env
+```
 
 ```env
+# Mandatory
 USERNAME=your_university_username
 PASSWORD=your_university_password
+
+# Timezone (default: Europe/Berlin)
+TIMEZONE="Europe/Berlin"
+
+# Booking time slots in order of priority (format: hh:mm:ss-hh:mm:ss, comma-separated)
+BOOKING_TIMES="14:00:00-19:00:00, 09:00:00-13:00:00, 20:00:00-23:45:00"
+
+# SSO provider - available: "kit", "tum" (add more in auth/providers/)
+SSO_PROVIDER="kit"
+
+# Resource configuration
+RESOURCE_URL_PATH="/resources/1-lehrbuchsammlung-eg-und-1-og/children"
+SERVICE_ID="449"
+
+# Preferred resource IDs tried first (comma-separated). Leave empty to skip.
+RESOURCE_IDS=""
+
+# Set to "True" to iterate through all available resources after trying RESOURCE_IDS
+USE_ANY_RESOURCE_ID="True"
 ```
 
-### 3. Configure booking settings
+See `.env.example` for a full reference including a TUM example.
 
-Edit `config/constants.py`:
-
-```python
-SSO_PROVIDER = "kit"  # Your university's SSO provider
-RESOURCE_ID = None    # Auto-detect, or set a specific resource ID
-
-BOOKING_TIMES = [
-    {'start': '14:00:00', 'end': '19:00:00'},  # First priority
-    {'start': '09:00:00', 'end': '13:00:00'},  # Second priority
-    {'start': '20:00:00', 'end': '23:45:00'},  # Third priority
-]
-```
-
-### 4. Run locally
+### 3. Run locally
 
 ```bash
 python main.py
@@ -69,10 +82,19 @@ cron-job.org provides precise, timezone-aware scheduling with no delays.
 
 In your repository: **Settings > Secrets and variables > Actions**
 
+Add all variables from your `.env` file as repository secrets. At a minimum:
+
 | Secret | Value |
 |--------|-------|
 | `USERNAME` | Your university username |
 | `PASSWORD` | Your university password |
+| `TIMEZONE` | Your timezone (e.g. `Europe/Berlin`) |
+| `BOOKING_TIMES` | Comma-separated time slots (e.g. `14:00:00-19:00:00, 09:00:00-13:00:00`) |
+| `SSO_PROVIDER` | `kit` or `tum` |
+| `RESOURCE_URL_PATH` | Resource URL path for your library |
+| `SERVICE_ID` | Service ID for your library |
+| `RESOURCE_IDS` | Preferred resource IDs (optional) |
+| `USE_ANY_RESOURCE_ID` | `True` or `False` |
 
 #### 2. Create a GitHub Personal Access Token
 
@@ -115,13 +137,15 @@ Accept: application/vnd.github.v3+json
 ```
 anny-booking-automation/
 ├── main.py                 # Entry point
+├── .env.example            # Example environment configuration
 ├── config/
-│   └── constants.py        # URLs, timezone, booking times
+│   └── constants.py        # Loads settings from environment / .env
 ├── auth/
 │   ├── session.py          # Login session handling
 │   └── providers/          # SSO provider implementations
 │       ├── base.py         # Abstract base class
-│       └── kit.py          # KIT provider
+│       ├── kit.py          # KIT provider
+│       └── tum.py          # TUM provider
 ├── booking/
 │   └── client.py           # Booking API client
 └── utils/
@@ -153,9 +177,12 @@ from auth.providers.youruni import YourUniProvider
 
 PROVIDERS = {
     "kit": KITProvider,
+    "tum": TUMProvider,
     "youruni": YourUniProvider,
 }
 ```
+
+Then set `SSO_PROVIDER="youruni"` in your `.env` file.
 
 ## License
 
