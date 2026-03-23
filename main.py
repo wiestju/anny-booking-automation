@@ -24,7 +24,13 @@ def main():
     if not cookies:
         return False
 
-    booking = BookingClient(cookies)
+    booking = BookingClient(cookies, customer_account_id=session.customer_account_id)
+
+    if not booking.resource_url or not booking.service_id:
+        print("ℹ️ RESOURCE_URL_PATH or SERVICE_ID not set — attempting auto-discovery...")
+        if not booking.discover_resource_config():
+            print("❌ Auto-discovery failed. Please set RESOURCE_URL_PATH and SERVICE_ID in your .env")
+            return False
 
     # Only wait for midnight if within 10 minutes, otherwise execute immediately
     now = datetime.datetime.now(tz)
@@ -46,8 +52,12 @@ def main():
 
             r_ids_available = booking.find_available_resources(start, end)
 
+            if r_ids_available is None:
+                print(f"⚠️ Could not fetch available resources for {time_['start']}-{time_['end']}, skipping...")
+                continue
+
             r_ids_book = []
-            for r_id_av in RESOURCE_IDS:
+            for r_id_av in (RESOURCE_IDS or []):
                 if r_id_av in r_ids_available:
                     r_ids_book.append(r_id_av)
                     r_ids_available.remove(r_id_av)

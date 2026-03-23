@@ -8,10 +8,13 @@ class CheckoutException(Exception):
 
 
 class BookingClient:
-    def __init__(self, cookies):
+    def __init__(self, cookies, customer_account_id=None):
         self.session = requests.Session()
         self.session.cookies = cookies
         self.token = cookies.get('anny_shop_jwt')
+        self.resource_url = RESOURCE_URL
+        self.service_id = SERVICE_ID
+        self.customer_account_id = customer_account_id
 
         self.session.headers.update({
             'authorization': f'Bearer {self.token}',
@@ -22,8 +25,66 @@ class BookingClient:
             'user-agent': 'Mozilla/5.0'
         })
 
+    def discover_resource_config(self):
+        """Attempt to discover RESOURCE_URL_PATH and SERVICE_ID from the Anny API."""
+        if not self.customer_account_id:
+            print("❌ Could not determine customer account ID from login. Please set RESOURCE_URL_PATH and SERVICE_ID in your .env")
+            return False
+
+        response = self.session.get(
+            f"{BOOKING_API_BASE}/customer-accounts/{self.customer_account_id}/all-resources",
+            params={
+                'page[number]': 1,
+                'page[size]': 50,
+                'sort': 'name',
+                'include': 'services',
+            }
+        )
+        if not response.ok:
+            print(f"❌ Failed to discover resources: HTTP {response.status_code}")
+            return False
+
+        try:
+            body = response.json()
+        except (ValueError, JSONDecodeError):
+            print("❌ Invalid JSON response when discovering resources")
+            return False
+
+        resources = body.get('data', [])
+
+        # Only keep parent resources (has_children=true) — these have individual desks
+        # as children and match the /resources/{slug}/children URL pattern.
+        bookable = []
+        for r in resources:
+            if not r.get('attributes', {}).get('has_children'):
+                continue
+            svc_refs = r.get('relationships', {}).get('services', {}).get('data', [])
+            if not svc_refs:
+                continue
+            slug = r.get('attributes', {}).get('slug') or r['id']
+            bookable.append((f"/resources/{slug}", svc_refs[0]['id']))
+
+        if not bookable:
+            print("❌ No bookable resources found. Please set RESOURCE_URL_PATH and SERVICE_ID in your .env")
+            return False
+
+        if len(bookable) > 1:
+            print("ℹ️ Multiple bookable resources found. Using the first one automatically.")
+            print("   To use a specific one, set these in your .env:")
+            for resource_path, service_id in bookable:
+                print(f"   RESOURCE_URL_PATH={resource_path}/children")
+                print(f"   SERVICE_ID={service_id}")
+                print()
+
+        resource_path, service_id = bookable[0]
+        self.resource_url = f"{BOOKING_API_BASE}{resource_path}/children"
+        self.service_id = service_id
+
+        print(f"✅ Auto-discovered: RESOURCE_URL_PATH={resource_path}/children, SERVICE_ID={service_id}")
+        return True
+
     def find_available_resources(self, start, end):
-        response = self.session.get(RESOURCE_URL, params={
+        response = self.session.get(self.resource_url, params={
             'page[number]': 1,
             'page[size]': 250,
             'filter[available_from]': start,
@@ -31,7 +92,7 @@ class BookingClient:
             'filter[availability_exact_match]': 1,
             'filter[exclude_hidden]': 0,
             'filter[exclude_child_resources]': 0,
-            'filter[availability_service_id]': int(SERVICE_ID),
+            'filter[availability_service_id]': int(self.service_id),
             'filter[include_unavailable]': 0,
             'filter[pre_order_ids]': '',
             'sort': 'name'
@@ -55,12 +116,12 @@ class BookingClient:
             },
             json={
                 "resource_id": [resource_id],
-                "service_id": {SERVICE_ID: 1},
+                "service_id": {self.service_id: 1},
                 "start_date": start,
                 "end_date": end,
                 "description": "",
                 "customer_note": "",
-                "add_ons_by_service": {SERVICE_ID: [[]]},
+                "add_ons_by_service": {self.service_id: [[]]},
                 "sub_bookings_by_service": {},
                 "strategy": "multi-resource"
             }

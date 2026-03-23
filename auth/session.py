@@ -25,13 +25,13 @@ class AnnySession:
             print(f"✅ Login successful via {self.provider.name}.")
             return self.session.cookies
         except requests.RequestException as e:
-            print(f"[Login Error] Network error: {type(e).__name__}")
+            print(f"❌ Login failed: network error ({type(e).__name__})")
             return None
         except ValueError as e:
-            print(f"[Login Error] {e}")
+            print(f"❌ Login failed: {e}")
             return None
         except KeyError as e:
-            print(f"[Login Error] Missing expected field: {e}")
+            print(f"❌ Login failed: missing expected field {e}")
             return None
 
     def _init_headers(self):
@@ -73,9 +73,22 @@ class AnnySession:
         relay_state = extract_html_value(self.saml_response_html, r'name="RelayState" value="([^"]+)"')
         saml_response = extract_html_value(self.saml_response_html, r'name="SAMLResponse" value="([^"]+)"')
 
-        self.session.post(consume_url, data={
+        callback = self.session.post(consume_url, data={
             'RelayState': relay_state,
             'SAMLResponse': saml_response
         })
 
-        self.session.get(f"{ANNY_BASE_URL}/en-us/login?target=/en-us/home?withoutIntent=true")
+        home = self.session.get(f"{ANNY_BASE_URL}/en-us/login?target=/en-us/home?withoutIntent=true")
+
+        self.customer_account_id = (
+            self._extract_customer_account_id(callback.text) or
+            self._extract_customer_account_id(home.text)
+        )
+
+    @staticmethod
+    def _extract_customer_account_id(html: str) -> str | None:
+        match = re.search(
+            r'"customer-accounts","([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"',
+            html
+        )
+        return match.group(1) if match else None
