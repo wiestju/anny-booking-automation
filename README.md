@@ -1,57 +1,33 @@
 # Anny Booking Automation
 
-Automate study space reservations on [anny.eu](https://anny.eu) platforms used by university libraries. Logs in via SAML SSO, finds available slots, and books them automatically.
+Automatically reserve study spaces and library seats on [anny.eu](https://anny.eu) — the booking platform used by university libraries across Germany, including the **Karlsruhe Institute of Technology (KIT)** and the **Technical University of Munich (TUM)**.
+
+The script logs in via SAML Single Sign-On (SSO), waits until midnight when new slots open, and instantly books your preferred time slot — fully automated.
 
 ## Features
 
-- **Pluggable SSO** - KIT and TUM providers included, easily extendable for other universities
-- **Smart scheduling** - Waits until midnight when slots open, or runs immediately for testing
-- **Configurable time slots** - Set your preferred booking times in order of priority
-- **Resource priority** - Define preferred desk/room IDs; falls back to any available resource
-- **Environment-based config** - All settings (provider, times, resources) via `.env` / GitHub Secrets
-- **Automated execution** - Runs via GitHub Actions + cron-job.org, or as a self-hosted Linux cron job
+- **Auto-discovery** — Automatically detects your library's resource and service IDs after login; no manual API research needed
+- **Pluggable SSO** — Built-in providers for KIT (Karlsruhe Institute of Technology) and TUM (Technical University of Munich); easily extendable for other universities
+- **Smart scheduling** — Waits until midnight when new booking slots open, or runs immediately for testing
+- **Configurable time slots** — Set your preferred booking times in order of priority
+- **Resource priority** — Define preferred desk or room IDs; falls back to any available resource
+- **Environment-based config** — All settings via `.env` file or GitHub Secrets; no code changes required
+- **Flexible execution** — Runs via GitHub Actions + cron-job.org (no server needed), or as a self-hosted Linux cron job
+
+## Supported Universities
+
+| University | SSO Provider | Status |
+| --- | --- | --- |
+| Karlsruhe Institute of Technology (KIT) | `kit` | ✅ Supported |
+| Technical University of Munich (TUM) | `tum` | ✅ Supported |
+| Other Anny-based libraries | Custom provider | See [Adding a New SSO Provider](#adding-a-new-sso-provider) |
 
 ## Quick Start
 
-### 1. Clone and install
+Choose your setup path and jump to the relevant section:
 
-```bash
-git clone https://github.com/wiestju/anny-booking-automation.git
-cd anny-booking-automation
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-### 2. Configure environment
-
-Copy `.env.example` to `.env` and fill in your values:
-
-```bash
-cp .env.example .env
-```
-
-| Variable | Required | Default | Example | Description |
-|---|---|---|---|---|
-| `USERNAME` | **Yes** | — | `student123` | Your university login username |
-| `PASSWORD` | **Yes** | — | `secret` | Your university login password |
-| `SSO_PROVIDER` | **Yes** | — | `kit` | SSO provider (`kit` or `tum`) |
-| `RESOURCE_URL_PATH` | **Yes** | — | `/resources/1-lehrbuchsammlung-eg-und-1-og/children` | API path for your library's rooms |
-| `SERVICE_ID` | **Yes** | — | `449` | Service ID for your library |
-| `TIMEZONE` | No | `Europe/Berlin` | `Europe/Berlin` | Timezone for the midnight wait |
-| `BOOKING_TIMES` | No | `14:00:00-19:00:00, 09:00:00-13:00:00, 20:00:00-23:45:00` | `14:00:00-19:00:00, 09:00:00-13:00:00` | Desired time slots in priority order (`hh:mm:ss-hh:mm:ss`, comma-separated) |
-| `RESOURCE_IDS` | No | — | `5957, 5958` | Preferred resource IDs tried first (comma-separated). Omit to skip. |
-| `USE_ANY_RESOURCE_ID` | No | `False` | `True` | If `True`, falls back to any available resource after trying `RESOURCE_IDS` |
-
-See `.env.example` for a ready-to-copy template including a TUM example.
-
-> **Note:** At least one of `RESOURCE_IDS` or `USE_ANY_RESOURCE_ID=True` must be set, otherwise no resource will be booked.
-
-### 3. Run locally
-
-```bash
-python main.py
-```
+- **[Option A: GitHub Actions + cron-job.org](#option-a-github-actions--cron-joborg)** — No server needed. Fork the repo, add secrets, done.
+- **[Option B: Self-hosted Linux Cron](#option-b-self-hosted-linux-cron)** — Clone, configure a `.env` file, and run on your own server.
 
 ## Automated Scheduling
 
@@ -61,41 +37,46 @@ Two options are supported: **GitHub Actions** (no server needed) or a **self-hos
 
 ### Option A: GitHub Actions + cron-job.org
 
-#### Why cron-job.org instead of GitHub's schedule?
+#### Why cron-job.org instead of GitHub's built-in schedule?
 
 GitHub Actions `on: schedule` has two issues:
-- **Queue delays** - Workflows can be delayed by minutes, missing the booking window
-- **UTC only** - No timezone support, requiring manual DST adjustments
 
-cron-job.org provides precise, timezone-aware scheduling with no delays.
+- **Queue delays** — Workflows can be delayed by minutes, missing the booking window
+- **UTC only** — No timezone support, requiring manual DST adjustments
+
+[cron-job.org](https://cron-job.org) provides precise, timezone-aware scheduling with no delays.
 
 #### Setup
 
-##### 1. Add GitHub Secrets
+##### 1. Fork the repository
 
-In your repository: **Settings > Secrets and variables > Actions**
+Click the **Fork** button on the [GitHub repository page](https://github.com/wiestju/anny-booking-automation) to create your own copy. The GitHub Actions workflow is already included.
 
-Add all variables from your `.env` file as repository secrets. At a minimum:
+> **⚠️ Security:** Forks of public repositories are public by default. Since your credentials are stored as GitHub Secrets (not in code), they are safe — but it is still recommended to set your fork to **private**: go to your fork's **Settings > Danger Zone > Change visibility**. Also remember: Never commit or push a `.env` file to any GitHub repository.
+
+##### 2. Add GitHub Secrets
+
+In your forked repository: **Settings > Secrets and variables > Actions**
+
+Add the following repository secrets:
 
 | Secret | Value |
-|--------|-------|
+| ------ | ----- |
 | `USERNAME` | Your university username |
 | `PASSWORD` | Your university password |
 | `TIMEZONE` | Your timezone (e.g. `Europe/Berlin`) |
 | `BOOKING_TIMES` | Comma-separated time slots (e.g. `14:00:00-19:00:00, 09:00:00-13:00:00`) |
 | `SSO_PROVIDER` | `kit` or `tum` |
-| `RESOURCE_URL_PATH` | Resource URL path for your library |
-| `SERVICE_ID` | Service ID for your library |
 | `RESOURCE_IDS` | Preferred resource IDs (optional) |
 | `USE_ANY_RESOURCE_ID` | `True` or `False` |
 
-##### 2. Create a GitHub Personal Access Token
+##### 3. Create a GitHub Personal Access Token
 
 1. Go to [GitHub Settings > Developer settings > Personal access tokens](https://github.com/settings/tokens)
 2. Generate a token with `repo` scope (or fine-grained with Actions read/write)
 3. Copy the token
 
-##### 3. Configure cron-job.org
+##### 4. Configure cron-job.org
 
 Create a new cron job with these settings:
 
@@ -129,15 +110,45 @@ Accept: application/vnd.github.v3+json
 
 ### Option B: Self-hosted Linux Cron
 
-If you have a Linux server (or a Raspberry Pi, VPS, etc.) you can run the script directly without GitHub Actions.
+If you have a Linux server (Raspberry Pi, VPS, etc.) you can run the script directly without GitHub Actions.
 
 #### Setup
 
-1. **Clone and install** the project on your server (see [Quick Start](#quick-start)).
+1. **Clone and install** the project on your server:
 
-2. **Create your `.env`** file in the repo root with all required variables.
+```bash
+git clone https://github.com/wiestju/anny-booking-automation.git
+cd anny-booking-automation
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
 
-3. **Make the run script executable:**
+1. **Create your `.env`** file by copying the example template and filling in your values:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Required | Default | Example | Description |
+| --- | --- | --- | --- | --- |
+| `USERNAME` | **Yes** | — | `student123` | Your university login username |
+| `PASSWORD` | **Yes** | — | `secret` | Your university login password |
+| `SSO_PROVIDER` | **Yes** | — | `kit` | SSO provider (`kit` or `tum`) |
+| `RESOURCE_URL_PATH` | No | Auto-discovered | `/resources/1-lehrbuchsammlung-eg-und-1-og/children` | API path for your library's rooms. Detected automatically if not set. |
+| `SERVICE_ID` | No | Auto-discovered | `449` | Booking service ID for your library. Detected automatically if not set. |
+| `TIMEZONE` | No | `Europe/Berlin` | `Europe/Berlin` | Timezone for the midnight wait |
+| `BOOKING_TIMES` | No | `14:00:00-19:00:00, 09:00:00-13:00:00, 20:00:00-23:45:00` | `14:00:00-19:00:00, 09:00:00-13:00:00` | Desired time slots in priority order (`hh:mm:ss-hh:mm:ss`, comma-separated) |
+| `RESOURCE_IDS` | No | — | `5957, 5958` | Preferred desk or room IDs tried first (comma-separated) |
+| `USE_ANY_RESOURCE_ID` | No | `False` | `True` | If `True`, falls back to any available resource after trying `RESOURCE_IDS` |
+
+> **Note:** `RESOURCE_URL_PATH` and `SERVICE_ID` are automatically discovered from the Anny API after login. You only need to set them manually if auto-discovery picks the wrong resource (e.g. if your account has access to multiple libraries).
+>
+> **Note:** At least one of `RESOURCE_IDS` or `USE_ANY_RESOURCE_ID=True` must be set, otherwise no resource will be booked.
+
+See `.env.example` for a ready-to-copy template including examples for KIT and TUM.
+
+1. **Make the run script executable:**
 
 ```bash
 chmod +x scripts/run.sh
@@ -179,36 +190,37 @@ anny-booking-automation/
 ├── config/
 │   └── constants.py        # Loads settings from environment / .env
 ├── auth/
-│   ├── session.py          # Login session handling
+│   ├── session.py          # Login session handling and customer account discovery
 │   └── providers/          # SSO provider implementations
 │       ├── base.py         # Abstract base class
-│       ├── kit.py          # KIT provider
-│       └── tum.py          # TUM provider
+│       ├── kit.py          # Karlsruhe Institute of Technology (KIT)
+│       └── tum.py          # Technical University of Munich (TUM)
 ├── booking/
-│   └── client.py           # Booking API client
+│   └── client.py           # Booking API client and resource auto-discovery
 └── utils/
     └── helpers.py          # Utility functions
 ```
 
 ## Adding a New SSO Provider
 
-Create `auth/providers/youruni.py`:
+To add support for another university that uses Anny for library bookings, create `auth/providers/youruni.py`:
 
 ```python
 from auth.providers.base import SSOProvider
 
 class YourUniProvider(SSOProvider):
-    name = "youruni"
+    name = "Your University Name"
     domain = "youruni.edu"
+    available_days_ahead = 3  # How many days ahead bookings open
 
     def authenticate(self) -> str:
-        # Implement SAML authentication flow
+        # Implement the university's SAML authentication flow
         # Use self.session, self.redirect_response, self.username, self.password
-        # Return HTML containing SAMLResponse
+        # Return the HTML page containing the SAMLResponse form field
         pass
 ```
 
-Register in `auth/providers/__init__.py`:
+Register it in `auth/providers/__init__.py`:
 
 ```python
 from auth.providers.youruni import YourUniProvider

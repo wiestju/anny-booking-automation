@@ -9,7 +9,7 @@ def get_future_datetime(days_ahead=3, time_string="13:00:00"):
     h, m, s = [int(h) for h in time_string.split(":")]
     dt = datetime.datetime.now(tz=tz) + datetime.timedelta(days=days_ahead)
     dt_correct_time = tz.localize(datetime.datetime(dt.year, dt.month, dt.day, h, m, s))
-    return dt_correct_time.strftime(f"%Y-%m-%dT%H:%M:%S%:z")
+    return dt_correct_time.isoformat()
 
 def extract_html_value(text, pattern):
     match = re.search(pattern, text)
