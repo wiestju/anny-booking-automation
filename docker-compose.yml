@@ -1,0 +1,11 @@
+services:
+  anny-booking:
+    build: .
+    image: anny-booking-automation:latest
+    container_name: anny-booking-automation
+    env_file:
+      - path: .env
+        required: true
+    restart: "unless-stopped"
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
