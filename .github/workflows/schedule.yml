@@ -1,31 +1,32 @@
-name: Daily Library Reservation Automation
+name: Library Reservation
 
+# Triggered externally at a precise time (e.g. via cron-job.org calling the
+# workflow_dispatch API), because GitHub's built-in `schedule:` cron can be
+# delayed by 10-15 min — which matters for hitting the exact opening time.
 on:
   workflow_dispatch:
 
 jobs:
-  run-script:
+  book:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.12'
+          cache: 'pip'
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-      - name: Run script
+        run: pip install -r requirements.txt
+      - name: Run booking
         env:
           USERNAME: ${{ secrets.USERNAME }}
           PASSWORD: ${{ secrets.PASSWORD }}
-          TIMEZONE: ${{ vars.TIMEZONE }}
-          SSO_PROVIDER: ${{ vars.SSO_PROVIDER }}
-          RESOURCE_URL_PATH: ${{ vars.RESOURCE_URL_PATH }}
-          SERVICE_ID: ${{ vars.SERVICE_ID }}
-          RESOURCE_IDS: ${{ vars.RESOURCE_IDS }}
-          USE_ANY_RESOURCE_ID: ${{ vars.USE_ANY_RESOURCE_ID }}
+          # Optional config via repository Variables (Settings → Secrets and
+          # variables → Actions → Variables). Leave unset to use defaults.
+          BOOKING_MODE: ${{ vars.BOOKING_MODE }}
+          BOOK_DAYS_AHEAD: ${{ vars.BOOK_DAYS_AHEAD }}
           BOOKING_TIMES: ${{ vars.BOOKING_TIMES }}
-        run: |
-          python main.py
+          FLOORS: ${{ vars.FLOORS }}
+          PREFERRED_RESOURCES: ${{ vars.PREFERRED_RESOURCES }}
+          USE_ANNY_FAVORITES: ${{ vars.USE_ANNY_FAVORITES }}
+        run: python main.py

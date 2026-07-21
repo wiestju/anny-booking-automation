@@ -1,4 +1,5 @@
 import html
+
 from auth.providers.base import SSOProvider
 from utils.helpers import extract_html_value
 

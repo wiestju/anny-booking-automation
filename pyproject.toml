@@ -1,0 +1,43 @@
+[project]
+name = "anny-booking-automation"
+version = "0.2.0"
+description = "Automated seat/room booking for anny.eu university libraries via SSO"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+dependencies = [
+    "requests>=2.31",
+    "pytz>=2024.1",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["auth", "auth.providers", "booking", "config", "utils"]
+py-modules = ["main"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+# E501 (line length) is handled by the formatter; a few long log strings are fine.
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["E402"]  # scripts adjust sys.path before importing project modules
+"main.py" = ["E402"]

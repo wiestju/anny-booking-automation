@@ -1,9 +1,11 @@
-import requests
-import urllib.parse
 import re
-from config.constants import AUTH_BASE_URL, ANNY_BASE_URL, DEFAULT_HEADERS
+import urllib.parse
+
+import requests
+
+from auth.providers import SSOProvider, get_provider
+from config.constants import ANNY_BASE_URL, AUTH_BASE_URL, DEFAULT_HEADERS
 from utils.helpers import extract_html_value
-from auth.providers import get_provider, SSOProvider
 
 
 class AnnySession:
@@ -22,7 +24,7 @@ class AnnySession:
             self._sso_login()
             self._provider_auth()
             self._consume_saml()
-            print(f"✅ Login successful via {self.provider.name}.")
+            # Success is logged by the caller (with a timestamp) to avoid a duplicate line.
             return self.session.cookies
         except requests.RequestException as e:
             print(f"❌ Login failed: network error ({type(e).__name__})")

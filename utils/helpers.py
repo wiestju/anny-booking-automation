@@ -1,8 +1,16 @@
-import re
-import html
 import datetime
+import html
+import re
+
 import pytz
+
 from config.constants import TIMEZONE
+
+
+def ts():
+    """Current Berlin time as [HH:MM:SS.mmm] prefix for log lines."""
+    return datetime.datetime.now(pytz.timezone(TIMEZONE)).strftime('[%H:%M:%S.%f]')[:-3] + ']'
+
 
 def get_future_datetime(days_ahead=3, time_string="13:00:00"):
     tz = pytz.timezone(TIMEZONE)

@@ -1,4 +1,15 @@
 /.idea
+.vscode/
 *.env
+.env
+venv/
+.venv/
+env/
+logs/
+*.log
 *pyc
 __pycache__/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.DS_Store
