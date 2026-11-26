@@ -89,8 +89,9 @@ class AnnySession:
 
     @staticmethod
     def _extract_customer_account_id(html: str) -> str | None:
-        match = re.search(
-            r'"customer-accounts","([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"',
-            html
-        )
+        uuid = r'([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'
+        # Old page format: "customer-accounts","<id>"
+        # Since Oct 2026 anny embeds it as e.g. api-collection:customer-accounts-<id>-liked-resources_...
+        match = (re.search(r'"customer-accounts","' + uuid + '"', html)
+                 or re.search(r'customer-accounts-' + uuid, html))
         return match.group(1) if match else None
